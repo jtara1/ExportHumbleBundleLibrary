@@ -6,10 +6,17 @@
 // script.src = '//code.jquery.com/jquery-3.2.1.min.js';
 // document.getElementsByTagName('head')[0].appendChild(script);
 
-async function run(resolve) {
+async function run(resolve, reject) {
     console.log('begin wait');
-    await sleep(3000); // wait for page to load
+    await sleep(1000); // wait for page to load
     console.log('begin script');
+
+    if (document === undefined || document === null) {
+        console.log('make http request');
+        let xhr = XMLHttpRequest("https://www.humblebundle.com/home/keys");
+        let document = xhr.document;
+        return reject;
+    }
 
     let games_div = document.getElementsByClassName("unredeemed-keys-table")[0];
     let games_tr = games_div.getElementsByTagName("tr");
@@ -42,6 +49,15 @@ async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-let p = new Promise(resolve => run(resolve));
+function addListenerDOMContentLoaded(callback) {
+    window.addEventListener("DOMContentLoaded", callback, false);
+}
 
+console.log('jtara1 script loaded');
+let p = new Promise((res, rej) => {
+    window.addEventListener("DOMContentLoaded", () => run(res, rej), false);
+});
+
+p.catch((reason) => {console.log(reason);});
+// run(null);
 // window.onhashchange = run;

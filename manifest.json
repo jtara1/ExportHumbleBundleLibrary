@@ -4,12 +4,12 @@
   "version": "0.1.0",
   "icons": {
   },
-  "description": "Store information of all your unredeemed games from humblebundle.com in JSON file",
+  "description": "Store information of all your unredeemed games from  humblebundle.com in JSON file",
   "content_scripts": [
     {
-      "matches": ["*://humblebundle.com/home/keys"],
-      "js": ["jquery-3.2.1.min.js", "FileSaver.js", "main.js"],
-	  "run_at": "document_end"
+      "matches": ["https://humblebundle.com/home/keys"],
+      "js": ["FileSaver.js", "main.js"]
     }
-  ]
+  ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }
