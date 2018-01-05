@@ -1,63 +1,96 @@
-// import * as fs from "FileSaver";
-// import "FileSaver";
-// import * as jquery from "jquery-3.2.1.min";
-// let script = document.createElement('script');
-// script.type = 'text/javascript';
-// script.src = '//code.jquery.com/jquery-3.2.1.min.js';
-// document.getElementsByTagName('head')[0].appendChild(script);
+async function run() {
+    // if (document === undefined || document === null) {
+    //     console.log('make http request');
+    //     let xhr = XMLHttpRequest("https://www.humblebundle.com/home/keys");
+    //     let document = xhr.document;
+    // }
+    await sleep(100); // wait for page to load
+    let gamesDiv = document.getElementsByClassName("unredeemed-keys-table")[0];
+    let gamesTr = gamesDiv.getElementsByTagName("tr");
+    let gamesList = [];
 
-async function run(resolve, reject) {
-    console.log('begin wait');
-    await sleep(1000); // wait for page to load
-    console.log('begin script');
+    // the first one is the header of the table (not a game listing)
+    for (let i = 1; i < gamesTr.length; ++i) {
+        let platform = gamesTr[i].getElementsByClassName("hb-key")[0]
+            .getAttribute("title");
+        let name = gamesTr[i].getElementsByTagName("h4")[0]
+            .getAttribute("title");
+        let bundle_name = gamesTr[i].getElementsByTagName("p")[0]
+            .getAttribute("title");
 
-    if (document === undefined || document === null) {
-        console.log('make http request');
-        let xhr = XMLHttpRequest("https://www.humblebundle.com/home/keys");
-        let document = xhr.document;
-        return reject;
+        let map = {
+            'name': name,
+            'redemption-platform': platform,
+            'bundle-name': bundle_name
+        };
+        gamesList.push(map);
     }
-
-    let games_div = document.getElementsByClassName("unredeemed-keys-table")[0];
-    let games_tr = games_div.getElementsByTagName("tr");
-    let games_list = [];
-
-    for (let i = 1; i < games_tr.length; ++i) {
-        let platform = games_tr[i].getElementsByClassName("hb-key")[0].getAttribute("title");
-        console.log(platform);
-        let name = games_tr[i].getElementsByTagName("h4")[0].getAttribute("title");
-        let bundle_name = games_tr[i].getElementsByTagName("p")[0].getAttribute("title");
-
-        let map = new Map([
-            ['redemption-platform', platform],
-            ['name', name],
-            ['bundle-name', bundle_name]]
-        );
-        games_list.push(map);
-    }
-    saveAs(JSON.stringify(games_list), 'some_file.json');
-    // $("#btn-save").click( function() {
-    //     var text = $("#textarea").val();
-    //     var filename = $("#input-fileName").val();
-    //     var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
-    //     saveAs(blob, filename+".txt");
-    // });
-    return resolve;
+    console.log(gamesList);
+    return gamesList;
 }
 
 async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function addListenerDOMContentLoaded(callback) {
-    window.addEventListener("DOMContentLoaded", callback, false);
+function toggleHideRedeemedGames() {
+    let button = document.getElementById("hide-redeemed");
+    // console.log(button.valueOf());
+    button.click();
 }
 
-console.log('jtara1 script loaded');
-let p = new Promise((res, rej) => {
-    window.addEventListener("DOMContentLoaded", () => run(res, rej), false);
-});
+function hasNextPage(clickNextPageButton=true) {
+    let buttons = document
+        .getElementsByClassName("js-jump-to-page jump-to-page");
+    // same page select buttons at top of webpage as the ones at the bottom
+    // buttons = buttons.slice(0, buttons.length / 2);
 
-p.catch((reason) => {console.log(reason);});
-// run(null);
-// window.onhashchange = run;
+    for (let i = 0; i < buttons.length / 2; ++i) {
+        let buttonClassValue = buttons[i].getAttribute("class");
+        if (buttonClassValue.includes("current")) {
+            // there is no next button
+            if (i === buttons.length / 2 - 1) {
+                return false;
+            }
+            if (clickNextPageButton) {
+                buttons[i + 1].click();
+            }
+            return true;
+        }
+    }
+    throw new DOMException("Could not find next page buttons at " +
+        "humblebundle.com/home/keys");
+}
+
+async function main(resolve, reject) {
+    await sleep(1500); // wait for page to load
+    console.log("[ExportHumbleBundle] begin script");
+    await toggleHideRedeemedGames();
+
+    let gamesList = [];
+    setTimeout(
+        () => {
+            while (hasNextPage(true)) {
+                let p = run();
+                p.catch(logError);
+                p.then((games) => {
+                    gamesList.concat(games);
+                });
+            }
+        },
+        10000
+    );
+    // save as a local file
+    saveAs(
+        new Blob([JSON.stringify(gamesList)]),
+        'Humble_Bundle_Games.json'
+    );
+    return resolve;
+}
+
+const logError = (reason) =>
+    { console.log("[ExportHumbleBundle] Error:\n", reason); };
+
+// start the program
+let p = new Promise(main);
+p.catch(logError);
