@@ -1,10 +1,12 @@
-async function run() {
+async function getGamesList() {
     // if (document === undefined || document === null) {
     //     console.log('make http request');
     //     let xhr = XMLHttpRequest("https://www.humblebundle.com/home/keys");
     //     let document = xhr.document;
     // }
-    await sleep(100); // wait for page to load
+    console.log("calling getGamesList");
+
+    // await sleep(500); // wait for page to load
     let gamesDiv = document.getElementsByClassName("unredeemed-keys-table")[0];
     let gamesTr = gamesDiv.getElementsByTagName("tr");
     let gamesList = [];
@@ -25,12 +27,14 @@ async function run() {
         };
         gamesList.push(map);
     }
-    console.log(gamesList);
+    console.log('gamesList from getGamesList', gamesList);
+    // resolve(gamesList);
     return gamesList;
+    // return new Promise((resolve) => { resolve(gamesList); })
 }
 
 async function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toggleHideRedeemedGames() {
@@ -53,6 +57,7 @@ function hasNextPage(clickNextPageButton=true) {
                 return false;
             }
             if (clickNextPageButton) {
+                console.log('clicking next button', buttons[i + 1]);
                 buttons[i + 1].click();
             }
             return true;
@@ -68,24 +73,41 @@ async function main(resolve, reject) {
     await toggleHideRedeemedGames();
 
     let gamesList = [];
-    setTimeout(
-        () => {
-            while (hasNextPage(true)) {
-                let p = run();
-                p.catch(logError);
-                p.then((games) => {
-                    gamesList.concat(games);
-                });
-            }
-        },
-        10000
-    );
-    // save as a local file
-    saveAs(
-        new Blob([JSON.stringify(gamesList)]),
-        'Humble_Bundle_Games.json'
-    );
-    return resolve;
+    while (hasNextPage(true)) {
+        let list = getGamesList();
+        gamesList = gamesList.concat(list);
+    }
+    
+    console.log(gamesList);
+    Promise.all(gamesList).then((value) => {
+        saveAs(
+            new Blob([JSON.stringify(gamesList)]),
+            'Humble_Bundle_Games.json'
+        );
+    });
+
+
+    // let promise = new Promise((resolve) => {
+    //     let gamesList = [];
+    //     // iterate over pages of games with redeemable keys
+    //     while (hasNextPage(true)) {
+    //         let gamesPromise = getGamesList();
+    //         console.log('getGamesList valueOf', gamesPromise.valueOf()); // debug
+    //         console.log(gamesPromise);  // debug
+    //         gamesPromise.then((list) => { gamesList.concat(list); });
+    //     }
+    //     return resolve(gamesList);
+    // });
+    // promise.then((list) => {
+    //     console.log(list); // debug
+    //     // save as a local file
+    //     saveAs(
+    //         new Blob([JSON.stringify(list)]),
+    //         'Humble_Bundle_Games.json'
+    //     );
+    // });
+
+    resolve('donezo');
 }
 
 const logError = (reason) =>
