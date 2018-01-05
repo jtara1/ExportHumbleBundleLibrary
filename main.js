@@ -1,12 +1,23 @@
+/**
+ * Get the list of games currently shown from
+ * https://www.humblebundle.com/home/keys
+ * e.g. of return value:
+ *   [
+ *       {
+ *           "name": "Chainsaw Warrior",
+ *           "redemption-platform": "Steam",
+ *           "bundle-name": "Yogscast Jingle Jam 2017"
+ *       },
+ *       {
+ *           "name": "Chime Sharp",
+ *           "redemption-platform": "Steam",
+ *           "bundle-name": "Yogscast Jingle Jam 2017"
+ *       }
+ *   ]
+ * @returns {Promise<Array>}
+ */
 async function getGamesList() {
-    // if (document === undefined || document === null) {
-    //     console.log('make http request');
-    //     let xhr = XMLHttpRequest("https://www.humblebundle.com/home/keys");
-    //     let document = xhr.document;
-    // }
-    console.log("calling getGamesList");
-
-    // await sleep(500); // wait for page to load
+    // console.log("calling getGamesList"); // debug
     let gamesDiv = document.getElementsByClassName("unredeemed-keys-table")[0];
     let gamesTr = gamesDiv.getElementsByTagName("tr");
     let gamesList = [];
@@ -27,10 +38,9 @@ async function getGamesList() {
         };
         gamesList.push(map);
     }
-    console.log('gamesList from getGamesList', gamesList);
-    // resolve(gamesList);
+
+    // console.log('gamesList from getGamesList', gamesList); // debug
     return gamesList;
-    // return new Promise((resolve) => { resolve(gamesList); })
 }
 
 async function sleep(ms) {
@@ -38,17 +48,14 @@ async function sleep(ms) {
 }
 
 function toggleHideRedeemedGames() {
-    let button = document.getElementById("hide-redeemed");
-    // console.log(button.valueOf());
-    button.click();
+    document.getElementById("hide-redeemed").click();
 }
 
 function hasNextPage(clickNextPageButton=true) {
     let buttons = document
         .getElementsByClassName("js-jump-to-page jump-to-page");
-    // same page select buttons at top of webpage as the ones at the bottom
-    // buttons = buttons.slice(0, buttons.length / 2);
 
+    // same page select buttons at top of webpage as the ones at the bottom
     for (let i = 0; i < buttons.length / 2; ++i) {
         let buttonClassValue = buttons[i].getAttribute("class");
         if (buttonClassValue.includes("current")) {
@@ -67,47 +74,33 @@ function hasNextPage(clickNextPageButton=true) {
         "humblebundle.com/home/keys");
 }
 
-async function main(resolve, reject) {
+/**
+ * Entry point for script
+ * @param resolve passed from creating new Promise
+ * @returns {Promise<void>}
+ */
+async function main(resolve) {
+    // TODO: use manifest.json to have script wait
     await sleep(1500); // wait for page to load
     console.log("[ExportHumbleBundle] begin script");
     await toggleHideRedeemedGames();
 
     let gamesList = [];
+    // TODO: fix logic err - this uses pages[1:]
     while (hasNextPage(true)) {
         let list = getGamesList();
         gamesList = gamesList.concat(list);
     }
-    
-    console.log(gamesList);
-    Promise.all(gamesList).then((value) => {
+
+    // console.log(gamesList); // debug
+    // TODO: fix redundant list: [[{'name': 'cool game'}]]
+    Promise.all(gamesList).then((values) => {
         saveAs(
-            new Blob([JSON.stringify(gamesList)]),
+            values,
             'Humble_Bundle_Games.json'
         );
     });
-
-
-    // let promise = new Promise((resolve) => {
-    //     let gamesList = [];
-    //     // iterate over pages of games with redeemable keys
-    //     while (hasNextPage(true)) {
-    //         let gamesPromise = getGamesList();
-    //         console.log('getGamesList valueOf', gamesPromise.valueOf()); // debug
-    //         console.log(gamesPromise);  // debug
-    //         gamesPromise.then((list) => { gamesList.concat(list); });
-    //     }
-    //     return resolve(gamesList);
-    // });
-    // promise.then((list) => {
-    //     console.log(list); // debug
-    //     // save as a local file
-    //     saveAs(
-    //         new Blob([JSON.stringify(list)]),
-    //         'Humble_Bundle_Games.json'
-    //     );
-    // });
-
-    resolve('donezo');
+    resolve('done');
 }
 
 const logError = (reason) =>
