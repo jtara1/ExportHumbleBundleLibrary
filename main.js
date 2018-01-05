@@ -96,7 +96,7 @@ async function main(resolve) {
     // TODO: fix redundant list: [[{'name': 'cool game'}]]
     Promise.all(gamesList).then((values) => {
         saveAs(
-            values,
+            new Blob([JSON.stringify(values)]),
             'Humble_Bundle_Games.json'
         );
     });
