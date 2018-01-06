@@ -44,11 +44,27 @@ async function getGamesList() {
 }
 
 /**
- * Clicks on "Hide Redeemed Keys" button at
+ * Sets the state of the checkbox to be that of parameter enabled
+ * on "Hide Redeemed Keys" button at
  * https://www.humblebundle.com/home/keys
+ * @param enabled desired state of the "Hide Redeemed Keys" button
  */
-function toggleHideRedeemedGames() {
-    document.getElementById("hide-redeemed").click();
+function setHideRedeemedGames(enabled) {
+    let checkbox = document.getElementById("hide-redeemed");
+    if (checkbox.checked !== enabled) {
+        checkbox.click();
+    }
+}
+
+/**
+ * Goes to the first page at home/keys URL path
+ */
+function goToFirstPage() {
+    let button = document.querySelector(
+        "div.js-jump-to-page.jump-to-page[data-index='0']");
+    if (button !== undefined && button !== null) {
+        button.click();
+    }
 }
 
 /**
@@ -63,6 +79,7 @@ function toggleHideRedeemedGames() {
 function hasNextPage(clickNextPageButton=true) {
     let buttons = document
         .getElementsByClassName("js-jump-to-page jump-to-page");
+    // console.log(buttons); // debug
 
     // same page select buttons at top of webpage as the ones at the bottom
     for (let i = 0; i < buttons.length / 2; ++i) {
@@ -84,13 +101,13 @@ function hasNextPage(clickNextPageButton=true) {
 }
 
 /**
- * Entry point for script. Create a new Promise with this function as the first
+ * Get the metadata of the games from the home/keys URL path and save as JSON
  * argument
  * @param resolve passed from creating new Promise
  * @returns {Promise<void>}
  */
-async function main(resolve) {
-    await toggleHideRedeemedGames();
+async function parseAndSaveGames(resolve=null) {
+    await setHideRedeemedGames(true);
 
     let gamesList = [];
     do {
@@ -112,16 +129,35 @@ async function main(resolve) {
             'Humble_Bundle_Games.json'
         );
     });
-    resolve('done');
+    if (typeof(resolve) === 'function') {
+        resolve('done');
+    }
+}
+
+/**
+ * Add an input tag of type "button" to the webpage under the div.sort element
+ * @returns {HTMLInputElement} the button created
+ */
+function addActivationButton() {
+    let button = document.createElement("input");
+    button.setAttribute("type", "button");
+    button.setAttribute("value", "Export Humble Bundle as JSON");
+    button.setAttribute("id", "export-humble-bundle-jtara1");
+
+    let div = document.getElementsByClassName("sort")[0];
+    div.appendChild(button);
+    return button;
 }
 
 const logError = (reason) =>
     { console.log("[ExportHumbleBundle] Error:\n", reason); };
 
-
+// add button that'll activate script once webpage loads
 window.onload = () => {
-    // start the program
-    console.log("[ExportHumbleBundle] begin script");
-    let p = new Promise(main);
-    p.catch(logError);
+    let button = addActivationButton();
+    // activation button is clicked
+    button.addEventListener("click", () => {
+        goToFirstPage();
+        parseAndSaveGames().catch(logError);
+    });
 };
