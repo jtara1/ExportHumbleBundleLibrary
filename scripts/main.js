@@ -43,14 +43,23 @@ async function getGamesList() {
     return gamesList;
 }
 
-async function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
+/**
+ * Clicks on "Hide Redeemed Keys" button at
+ * https://www.humblebundle.com/home/keys
+ */
 function toggleHideRedeemedGames() {
     document.getElementById("hide-redeemed").click();
 }
 
+/**
+ * Gets all of the next page buttons at webpage
+ * https://www.humblebundle.com/home/keys
+ * returns true if there exists a next page button, false otherwise
+ * Optionally clicks on next page button depending on parameter
+ * clickNextPageButton
+ * @param clickNextPageButton
+ * @returns {boolean}
+ */
 function hasNextPage(clickNextPageButton=true) {
     let buttons = document
         .getElementsByClassName("js-jump-to-page jump-to-page");
@@ -64,39 +73,42 @@ function hasNextPage(clickNextPageButton=true) {
                 return false;
             }
             if (clickNextPageButton) {
-                console.log('clicking next button', buttons[i + 1]);
+                // console.log('clicking next button', buttons[i + 1]);
                 buttons[i + 1].click();
             }
             return true;
         }
     }
-    throw new DOMException("Could not find next page buttons at " +
+    throw new DOMException("Could not find any page navigation buttons at " +
         "humblebundle.com/home/keys");
 }
 
 /**
- * Entry point for script
+ * Entry point for script. Create a new Promise with this function as the first
+ * argument
  * @param resolve passed from creating new Promise
  * @returns {Promise<void>}
  */
 async function main(resolve) {
-    // TODO: use manifest.json to have script wait
-    await sleep(1500); // wait for page to load
-    console.log("[ExportHumbleBundle] begin script");
     await toggleHideRedeemedGames();
 
     let gamesList = [];
-    // TODO: fix logic err - this uses pages[1:]
-    while (hasNextPage(true)) {
+    do {
         let list = getGamesList();
         gamesList = gamesList.concat(list);
-    }
+    } while (hasNextPage(true));
 
     // console.log(gamesList); // debug
-    // TODO: fix redundant list: [[{'name': 'cool game'}]]
+    // when each Promise in gamesList is resolved, then save as local JSON file
     Promise.all(gamesList).then((values) => {
-        saveAs(
-            new Blob([JSON.stringify(values)]),
+        // merge lists
+        values = values.reduce((a, b) => {
+            return a.concat(b);
+        });
+
+        // console.log(values); // debug
+        saveTextAs(
+            JSON.stringify(values),
             'Humble_Bundle_Games.json'
         );
     });
@@ -106,6 +118,10 @@ async function main(resolve) {
 const logError = (reason) =>
     { console.log("[ExportHumbleBundle] Error:\n", reason); };
 
-// start the program
-let p = new Promise(main);
-p.catch(logError);
+
+window.onload = () => {
+    // start the program
+    console.log("[ExportHumbleBundle] begin script");
+    let p = new Promise(main);
+    p.catch(logError);
+};
