@@ -24,17 +24,23 @@ async function getGamesList() {
 
     // the first one is the header of the table (not a game listing)
     for (let i = 1; i < gamesTr.length; ++i) {
-        let platform = gamesTr[i].getElementsByClassName("hb-key")[0]
-            .getAttribute("title");
+        const italicsTag = gamesTr[i].querySelector('.hb-key');
+        const divTag = gamesTr[i].querySelector('div.js-keyfield');
+
+        if (!divTag || !italicsTag) continue;
+        const isKeyRevealed = divTag.classList.value.includes('redeemed');
+
+        let platform = italicsTag.title;
         let name = gamesTr[i].getElementsByTagName("h4")[0]
             .getAttribute("title");
-        let bundle_name = gamesTr[i].getElementsByTagName("p")[0]
+        let bundleName = gamesTr[i].getElementsByTagName("p")[0]
             .getAttribute("title");
 
         let map = {
-            'name': name,
+            name,
             'redemption-platform': platform,
-            'bundle-name': bundle_name
+            'bundle-name': bundleName,
+            isKeyRevealed,
         };
         gamesList.push(map);
     }
